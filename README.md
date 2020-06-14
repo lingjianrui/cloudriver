@@ -1,5 +1,5 @@
-Author : lingjianrui
-Email  : lingjianrui@xlcsm.net
+Author : lingjianrui  
+Email  : lingjianrui@xlcsm.net  
 # cloudc 服务端
 ## 服务端技术架构
     golang gin gorm

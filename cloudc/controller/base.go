@@ -14,11 +14,12 @@ import (
 
 // Server 服务模型
 type Server struct {
-	DB         *gorm.DB
-	Router     *gin.Engine
-	ws         *websocket.Conn
-	deviceList []*model.Device
-	pGrader    websocket.Upgrader
+	DB     *gorm.DB
+	Router *gin.Engine
+	ws     *websocket.Conn
+	//deviceList []*model.Device
+	deviceMap map[string]*model.Device
+	pGrader   websocket.Upgrader
 }
 
 func (server *Server) init() {
@@ -53,13 +54,14 @@ func (server *Server) Ping(c *gin.Context) {
 		if strings.HasPrefix(string(message), "device:") {
 			nDevice.DeviceType = strings.Split(string(message), ":")[1]
 			fmt.Println(nDevice.DeviceType)
-			server.deviceList = append(server.deviceList, nDevice)
+			//server.deviceList = aserver.deviceList, nDevice)
 			message = []byte("fine")
 		}
 		//客户端返回手机序列号 持久化设备
 		if strings.HasPrefix(string(message), "serial:") {
 			nDevice.DeviceSerial = strings.Split(string(message), ":")[1]
 			fmt.Println(nDevice.DeviceSerial)
+			server.deviceMap[nDevice.DeviceSerial] = nDevice
 			nDevice.Save(server.DB, nDevice.DeviceSerial)
 			message = []byte("ok")
 		}
@@ -80,11 +82,16 @@ func (server *Server) Ping(c *gin.Context) {
 }
 
 func (server *Server) Exec(c *gin.Context) {
-	codeParam := c.Request.URL.Query().Get("code")
-	nameParam := c.Request.URL.Query().Get("name")
-	fmt.Println(len(server.deviceList))
-	for _, item := range server.deviceList {
-		item.Connection.WriteMessage(websocket.TextMessage, []byte("code~"+codeParam+"~"+nameParam))
+	//codeParam := c.Request.URL.Query().Get("code")
+	//nameParam := c.Request.URL.Query().Get("name")
+	nameParam := c.PostForm("name")
+	serialParam := c.PostForm("serial")
+	codeParam := c.PostForm("code")
+	fmt.Println(len(server.deviceMap))
+	if v, ok := server.deviceMap[serialParam]; ok {
+		v.Connection.WriteMessage(websocket.TextMessage, []byte("code~"+codeParam+"~"+nameParam))
+	} else {
+		fmt.Println("device not in Map")
 	}
 }
 

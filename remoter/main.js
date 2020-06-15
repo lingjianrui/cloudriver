@@ -12,22 +12,37 @@ var reConnectNum = 0;
 var reConnectTimer = null;
 //用于断线重连的定时器Id, 连上了要清除
 //console.show();
+
 getWebSocket();
+hawk();
 
-
+// 设置一个空的定时器保证程序不结束, 否则ws的监听事件不在此线程会自动结束
 setInterval(function () {
-    //设置一个空的定时器保证程序不结束, 否则ws的监听事件不在此线程会自动结束
 }, 1000);
 
 
-//新建websocket的函数 页面初始化 断开连接时重新调用
+// 检测任务池是否执行完，如果任务数量大于1 说明手机被任务占用 此时更新状态
+function hawk(){
+    threads.start( function(){
+        while(true){
+            if(engines.all().length > 1){
+                ws.send("status:busy");
+            }else{
+                ws.send("status:free");
+            }
+            sleep(5000);
+        }
+    })
+}
+
+// 新建websocket的函数 页面初始化 断开连接时重新调用
 function getWebSocket() {
     ws = web.newWebSocket(wsUrl, {
         eventThread: 'this'
         //不加参数则回调在IO线程
     });
     
-    // 指定web socket的事件回调在当前线程（好处是没有多线程问题要处理，坏处是不能阻塞当前线程，包括死循环）
+    //指定web socket的事件回调在当前线程（好处是没有多线程问题要处理，坏处是不能阻塞当前线程，包括死循环）
     ws.on("open", (res, ws) => {
         //连接时设置状态
         isConnect = true;
@@ -52,16 +67,15 @@ function getWebSocket() {
             log("Device就绪");
         }
         if(text.startsWith("code~")){
-            ws.send("status:busy");
+            
             var code = text.split("~");
-            threads.start(
-                function () {
-                  log('开始任务');
-                  engines.execScript(code[2],code[1]);
-                  log('结束任务');
-                  ws.send("status:free");
-                }
-            )
+            engines.execScript(code[2],code[1]);
+            // var thread = threads.start(
+            //     function () {
+                  
+            //     }
+            // )
+            // thread.waitFor();
         }
         
     }).on("binary", (bytes, ws) => {
@@ -72,11 +86,11 @@ function getWebSocket() {
         //关闭时要改变连接状态以便重连
         reConnect();
     });
-    // 监听他的各种事件 
+    //监听他的各种事件 
 }
 
 
-//断线重连
+// 断线重连
 function reConnect() {
     if (isConnect) {
         if (!reConnectTimer) {

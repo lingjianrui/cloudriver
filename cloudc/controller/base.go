@@ -65,8 +65,11 @@ func (server *Server) Ping(c *gin.Context) {
 		}
 		//执行任务的时候客户端会告诉服务器端设备状态
 		if strings.HasPrefix(string(message), "status:") {
-			nDevice.Status = strings.Split(string(message), ":")[1]
-			nDevice.UpdateStatus(server.DB, nDevice.Status)
+			status := strings.Split(string(message), ":")[1]
+			if nDevice.Status != status {
+				nDevice.Status = status
+				nDevice.UpdateStatus(server.DB, status)
+			}
 		}
 		//写入ws数据
 		err = server.ws.WriteMessage(mt, message)

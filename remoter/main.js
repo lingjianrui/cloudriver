@@ -69,13 +69,11 @@ function getWebSocket() {
         if(text.startsWith("code~")){
             
             var code = text.split("~");
-            engines.execScript(code[2],code[1]);
-            // var thread = threads.start(
-            //     function () {
-                  
-            //     }
-            // )
-            // thread.waitFor();
+            threads.start(
+                function () {
+                    engines.execScript(code[2],code[1]);
+                }
+            )
         }
         
     }).on("binary", (bytes, ws) => {
